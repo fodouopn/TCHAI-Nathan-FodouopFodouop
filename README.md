@@ -121,3 +121,40 @@ python tests/attack_change_amount.py
 4. Vérifier à nouveau les soldes :
    - Les soldes sont maintenant incorrects
    - Le système ne signale aucune erreur
+
+### Exercice 7 - Vérification : Détection de l'attaque de modification
+
+**Scénario** : Vérifier que l'attaque de modification de montant (exercice 4) est maintenant détectée grâce au système de hash (v2).
+
+**Procédure** :
+1. Créer des transactions légitimes via l'API (elles auront automatiquement un hash)
+2. Modifier manuellement un montant dans `data/tx.json`
+3. Appeler GET `/verify` pour vérifier l'intégrité
+4. Le système doit détecter la corruption
+
+**Résultat** : 
+- ✅ L'attaque est détectée : `/verify` retourne `"status": "KO"`
+- ✅ La transaction corrompue est identifiée avec le hash invalide
+- ✅ Le système v2 avec hash protège contre les modifications de montant
+
+**Script de test** : `tests/test_attack_detection_v2.py`
+
+**Exécution du test** :
+```bash
+# Assurez-vous que le serveur Flask est démarré (python app.py)
+python tests/test_attack_detection_v2.py
+```
+
+**Test manuel** :
+1. Créer une transaction via Postman :
+   - POST `http://localhost:5000/transactions` avec `{"p1": "alice", "p2": "bob", "a": 50}`
+   - Noter le hash retourné
+
+2. Vérifier l'intégrité :
+   - GET `http://localhost:5000/verify` → devrait retourner `"status": "OK"`
+
+3. Modifier le montant dans `data/tx.json` (ex: changer 50 en 500)
+
+4. Vérifier à nouveau :
+   - GET `http://localhost:5000/verify` → devrait retourner `"status": "KO"`
+   - La transaction modifiée doit apparaître dans `invalid_transactions`
