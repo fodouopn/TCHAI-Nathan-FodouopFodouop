@@ -71,6 +71,18 @@ Concevoir un système de transactions électroniques avec une intégrité garant
 
 - **A4** - GET `/balance/<personne>` : Solde d'une personne (entrées - sorties)
 
+- **A5** - GET `/verify` : Vérifier l'intégrité des données
+  - Recalcule les hashs de toutes les transactions
+  - Compare avec les hashs stockés
+  - Retourne un rapport avec :
+    - `status` : "OK" si toutes les transactions sont valides, "KO" sinon
+    - `valid` : booléen indiquant si toutes les transactions sont valides
+    - `total_transactions` : nombre total de transactions
+    - `valid_count` : nombre de transactions valides
+    - `invalid_count` : nombre de transactions invalides
+    - `valid_transactions` : liste des IDs des transactions valides
+    - `invalid_transactions` : liste détaillée des transactions invalides (avec raison)
+
 ## Attaques et tests
 
 ### Exercice 4 - Attaque : Modification de montant

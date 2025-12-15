@@ -108,6 +108,64 @@ def balance(person: str):
     return jsonify({"person": person, "balance": incoming - outgoing})
 
 
+@app.get("/verify")
+def verify_integrity():
+    """
+    A5: Vérifier l'intégrité des données en recalculant les hashs
+    et en les comparant avec les hashs stockés.
+    """
+    txs = load_transactions()
+    valid_txs = []
+    invalid_txs = []
+    
+    for tx in txs:
+        # Vérifier si la transaction a un hash (compatibilité v1)
+        if "h" not in tx:
+            invalid_txs.append({
+                "id": tx.get("id"),
+                "reason": "Transaction v1 sans hash",
+                "transaction": tx
+            })
+            continue
+        
+        # Recalculer le hash à partir des données (sans utiliser le hash stocké)
+        required_fields = ["p1", "p2", "t", "a"]
+        if not all(field in tx for field in required_fields):
+            invalid_txs.append({
+                "id": tx.get("id"),
+                "reason": "Champs manquants pour le calcul du hash",
+                "transaction": tx
+            })
+            continue
+        
+        computed_hash = compute_hash(tx["p1"], tx["p2"], tx["t"], tx["a"])
+        stored_hash = tx["h"]
+        
+        if computed_hash == stored_hash:
+            valid_txs.append(tx.get("id"))
+        else:
+            invalid_txs.append({
+                "id": tx.get("id"),
+                "reason": "Hash invalide",
+                "computed_hash": computed_hash,
+                "stored_hash": stored_hash,
+                "transaction": tx
+            })
+    
+    is_valid = len(invalid_txs) == 0
+    status = "OK" if is_valid else "KO"
+    
+    return jsonify({
+        "status": status,
+        "valid": is_valid,
+        "total_transactions": len(txs),
+        "valid_count": len(valid_txs),
+        "invalid_count": len(invalid_txs),
+        "valid_transactions": valid_txs,
+        "invalid_transactions": invalid_txs
+    })
+
+
 if __name__ == "__main__":
     ensure_storage()
     app.run(host="0.0.0.0", port=5000, debug=True)
