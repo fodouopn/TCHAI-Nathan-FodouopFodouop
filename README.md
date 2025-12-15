@@ -158,3 +158,49 @@ python tests/test_attack_detection_v2.py
 4. Vérifier à nouveau :
    - GET `http://localhost:5000/verify` → devrait retourner `"status": "KO"`
    - La transaction modifiée doit apparaître dans `invalid_transactions`
+
+### Exercice 8 - Attaque : Suppression de transaction
+
+**Scénario** : Un attaquant supprime directement une transaction du fichier `data/tx.json`.
+
+**Procédure** :
+1. Créer plusieurs transactions légitimes via l'API
+2. Ouvrir `data/tx.json` et supprimer manuellement une transaction
+3. Vérifier que le système ne détecte pas la suppression
+
+**Résultat** : 
+- ✅ L'attaque réussit : la transaction est supprimée sans détection
+- ❌ Le système v2 ne peut pas détecter les suppressions
+  - Chaque transaction a un hash indépendant
+  - Supprimer une transaction ne casse pas les hashs des autres
+- ⚠️  **RISQUE** : La suppression peut entraîner la double dépense
+  - Une transaction peut être dépensée deux fois si elle est supprimée
+  - Les soldes deviennent incorrects
+
+**Script de test** : `tests/attack_delete_transaction.py`
+
+**Exécution du test** :
+```bash
+# Assurez-vous que le serveur Flask est démarré (python app.py)
+python tests/attack_delete_transaction.py
+```
+
+**Test manuel** :
+1. Créer au moins 2 transactions via Postman :
+   - POST `http://localhost:5000/transactions` avec `{"p1": "alice", "p2": "bob", "a": 100}`
+   - POST `http://localhost:5000/transactions` avec `{"p1": "bob", "p2": "charlie", "a": 50}`
+
+2. Vérifier les soldes :
+   - GET `http://localhost:5000/balance/alice` → devrait être -100
+   - GET `http://localhost:5000/balance/bob` → devrait être +50
+   - GET `http://localhost:5000/balance/charlie` → devrait être +50
+
+3. Ouvrir `data/tx.json` et supprimer une transaction (ex: supprimer la transaction de 100)
+
+4. Vérifier l'intégrité :
+   - GET `http://localhost:5000/verify` → peut retourner `"status": "OK"` (si les transactions restantes sont valides)
+   - Le système ne détecte pas la suppression
+
+5. Vérifier les soldes à nouveau :
+   - Les soldes sont maintenant incorrects
+   - La transaction supprimée n'est plus comptabilisée
