@@ -1,4 +1,5 @@
 import json
+import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any
@@ -31,6 +32,15 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def compute_hash(p1: str, p2: str, t: str, a: float) -> str:
+    """
+    Calcule le hash SHA-256 d'une transaction.
+    Hash de la concaténation: p1|p2|t|a
+    """
+    data = f"{p1}|{p2}|{t}|{a}"
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
 app = Flask(__name__)
 
 
@@ -47,12 +57,21 @@ def add_transaction():
 
     txs = load_transactions()
     tx_id = len(txs) + 1
+    p1 = payload["p1"]
+    p2 = payload["p2"]
+    a = payload["a"]
+    t = payload.get("t") or now_iso()
+    
+    # Calcul du hash de la transaction (P1, P2, t, a)
+    h = compute_hash(p1, p2, t, a)
+    
     tx = {
         "id": tx_id,
-        "p1": payload["p1"],
-        "p2": payload["p2"],
-        "a": payload["a"],
-        "t": payload.get("t") or now_iso(),
+        "p1": p1,
+        "p2": p2,
+        "a": a,
+        "t": t,
+        "h": h,  # Hash de la transaction
     }
     txs.append(tx)
     save_transactions(txs)
@@ -84,8 +103,8 @@ def balance(person: str):
     A4: Solde d'une personne = entrées - sorties.
     """
     txs = load_transactions()
-    incoming = sum(tx["a"] for tx in txs if tx["p2"] == person)
-    outgoing = sum(tx["a"] for tx in txs if tx["p1"] == person)
+    incoming = sum(tx["a"] for tx in txs if tx.get("p2") == person)
+    outgoing = sum(tx["a"] for tx in txs if tx.get("p1") == person)
     return jsonify({"person": person, "balance": incoming - outgoing})
 
 

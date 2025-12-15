@@ -14,10 +14,12 @@ Concevoir un système de transactions électroniques avec une intégrité garant
 - **Langage** : Python 3
 - **Framework web** : Flask
 - **Stockage** : Fichier JSON (`data/tx.json`)
+- **Fonction de hachage** : SHA-256 (bibliothèque standard `hashlib`)
 - **Justification** : 
   - Flask est léger et simple pour une API REST
   - Le stockage JSON facilite les tests d'attaque (modification directe du fichier)
   - Pas de dépendance à une base de données externe
+  - SHA-256 est une fonction de hachage cryptographique standard, sécurisée et rapide
 
 ## Structure du projet
 
@@ -42,6 +44,30 @@ Concevoir un système de transactions électroniques avec une intégrité garant
 - **A2** - GET `/transactions` : Liste de toutes les transactions (ordre chronologique)
 
 - **A3** - GET `/transactions/<personne>` : Liste des transactions liées à une personne
+
+- **A4** - GET `/balance/<personne>` : Solde d'une personne (entrées - sorties)
+
+### Tchaï v2 (avec hash)
+
+**Structure des transactions** : `(P1, P2, t, a, h)`
+- `P1` : expéditeur
+- `P2` : destinataire
+- `t` : timestamp ISO8601
+- `a` : montant
+- `h` : hash SHA-256 de `P1|P2|t|a`
+
+**Fonction de hachage** : SHA-256
+- Format du hash : hexadécimal (64 caractères)
+- Données hachées : concaténation de `p1|p2|t|a` (séparateur `|`)
+- Bibliothèque : `hashlib` (standard Python)
+
+- **A1** - POST `/transactions` : Enregistrer une transaction (calcule automatiquement le hash)
+  - Body: `{"p1": "expéditeur", "p2": "destinataire", "a": montant}`
+  - Retourne la transaction avec ID, timestamp et hash
+
+- **A2** - GET `/transactions` : Liste de toutes les transactions (ordre chronologique, inclut les hashs)
+
+- **A3** - GET `/transactions/<personne>` : Liste des transactions liées à une personne (inclut les hashs)
 
 - **A4** - GET `/balance/<personne>` : Solde d'une personne (entrées - sorties)
 
