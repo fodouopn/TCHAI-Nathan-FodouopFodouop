@@ -236,3 +236,42 @@ python tests/attack_delete_transaction.py
 5. Vérifier les soldes à nouveau :
    - Les soldes sont maintenant incorrects
    - La transaction supprimée n'est plus comptabilisée
+
+### Exercice 10 - Vérification : Détection des attaques avec hash chaîné (v3)
+
+**Scénario** : Vérifier que les attaques précédentes (modification et suppression) sont maintenant détectées grâce au hash chaîné (v3).
+
+**Procédure** :
+1. Créer plusieurs transactions légitimes via l'API (elles auront automatiquement le hash chaîné)
+2. Tester l'attaque de modification de montant
+3. Tester l'attaque de suppression
+4. Vérifier que `/verify` détecte ces attaques
+
+**Résultat** : 
+- ✅ **Modification de montant** : Détectée car le hash change, ce qui casse la chaîne pour toutes les transactions suivantes
+- ✅ **Suppression** : Détectée car les transactions suivantes dépendent du hash de la transaction supprimée
+- ✅ Le système v3 avec hash chaîné protège contre les modifications et suppressions
+
+**Script de test** : `tests/test_attacks_v3.py`
+
+**Exécution du test** :
+```bash
+# Assurez-vous que le serveur Flask est démarré (python app.py)
+python tests/test_attacks_v3.py
+```
+
+**Test manuel - Modification** :
+1. Créer au moins 3 transactions via Postman
+2. Vérifier l'intégrité : GET `/verify` → `"status": "OK"`
+3. Modifier un montant dans `data/tx.json` (ex: transaction du milieu)
+4. Vérifier à nouveau : GET `/verify` → `"status": "KO"`
+   - La transaction modifiée est détectée
+   - Les transactions suivantes sont aussi invalides (chaîne cassée)
+
+**Test manuel - Suppression** :
+1. Créer au moins 3 transactions via Postman
+2. Vérifier l'intégrité : GET `/verify` → `"status": "OK"`
+3. Supprimer une transaction dans `data/tx.json` (ex: transaction du milieu)
+4. Vérifier à nouveau : GET `/verify` → `"status": "KO"`
+   - Les transactions suivantes sont invalides (chaîne cassée)
+   - Le système détecte que le hash précédent attendu ne correspond pas
