@@ -83,6 +83,38 @@ Concevoir un système de transactions électroniques avec une intégrité garant
     - `valid_transactions` : liste des IDs des transactions valides
     - `invalid_transactions` : liste détaillée des transactions invalides (avec raison)
 
+### Tchaï v3 (hash chaîné)
+
+**Structure des transactions** : `(P1, P2, t, a, h)`
+- `P1` : expéditeur
+- `P2` : destinataire
+- `t` : timestamp ISO8601
+- `a` : montant
+- `h` : hash SHA-256 chaîné de `P1|P2|t|a|h_prev`
+
+**Fonction de hachage** : SHA-256 (hash chaîné)
+- Format du hash : hexadécimal (64 caractères)
+- Données hachées : concaténation de `p1|p2|t|a|h_prev` (séparateur `|`)
+- `h_prev` : hash de la transaction précédente (ou "0" pour la première transaction)
+- **Avantage** : Chaque transaction dépend de la précédente, ce qui permet de détecter les suppressions et modifications
+
+- **A1** - POST `/transactions` : Enregistrer une transaction (calcule automatiquement le hash chaîné)
+  - Body: `{"p1": "expéditeur", "p2": "destinataire", "a": montant}`
+  - Le hash inclut automatiquement le hash de la transaction précédente
+  - Retourne la transaction avec ID, timestamp et hash chaîné
+
+- **A2** - GET `/transactions` : Liste de toutes les transactions (ordre chronologique, inclut les hashs chaînés)
+
+- **A3** - GET `/transactions/<personne>` : Liste des transactions liées à une personne (inclut les hashs chaînés)
+
+- **A4** - GET `/balance/<personne>` : Solde d'une personne (entrées - sorties)
+
+- **A5** - GET `/verify` : Vérifier l'intégrité des données (v3)
+  - Recalcule les hashs chaînés de toutes les transactions dans l'ordre chronologique
+  - Vérifie que chaque hash dépend correctement du hash précédent
+  - Détecte les modifications, suppressions et insertions
+  - Retourne un rapport détaillé avec les transactions invalides
+
 ## Attaques et tests
 
 ### Exercice 4 - Attaque : Modification de montant

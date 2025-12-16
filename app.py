@@ -32,12 +32,13 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def compute_hash(p1: str, p2: str, t: str, a: float) -> str:
+def compute_hash(p1: str, p2: str, t: str, a: float, prev_hash: str = "0") -> str:
     """
     Calcule le hash SHA-256 d'une transaction.
-    Hash de la concaténation: p1|p2|t|a
+    v2: Hash de la concaténation: p1|p2|t|a
+    v3: Hash chaîné: hash(p1|p2|t|a|prev_hash)
     """
-    data = f"{p1}|{p2}|{t}|{a}"
+    data = f"{p1}|{p2}|{t}|{a}|{prev_hash}"
     return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
@@ -62,8 +63,18 @@ def add_transaction():
     a = payload["a"]
     t = payload.get("t") or now_iso()
     
-    # Calcul du hash de la transaction (P1, P2, t, a)
-    h = compute_hash(p1, p2, t, a)
+    # Calcul du hash chaîné (v3)
+    # Récupérer le hash de la transaction précédente
+    prev_hash = "0"  # Hash initial pour la première transaction
+    if txs:
+        # Trier par timestamp pour obtenir la dernière transaction
+        sorted_txs = sorted(txs, key=lambda tx: tx.get("t", ""))
+        last_tx = sorted_txs[-1]
+        if "h" in last_tx:
+            prev_hash = last_tx["h"]
+    
+    # Calcul du hash de la transaction (P1, P2, t, a, h_prev)
+    h = compute_hash(p1, p2, t, a, prev_hash)
     
     tx = {
         "id": tx_id,
@@ -71,7 +82,7 @@ def add_transaction():
         "p2": p2,
         "a": a,
         "t": t,
-        "h": h,  # Hash de la transaction
+        "h": h,  # Hash chaîné de la transaction
     }
     txs.append(tx)
     save_transactions(txs)
@@ -113,13 +124,18 @@ def verify_integrity():
     """
     A5: Vérifier l'intégrité des données en recalculant les hashs
     et en les comparant avec les hashs stockés.
+    v3: Vérifie aussi la chaîne de hashs (chaque hash dépend du précédent).
     """
     txs = load_transactions()
     valid_txs = []
     invalid_txs = []
     
-    for tx in txs:
-        # Vérifier si la transaction a un hash (compatibilité v1)
+    # Trier les transactions par timestamp pour vérifier la chaîne dans l'ordre
+    sorted_txs = sorted(txs, key=lambda tx: tx.get("t", ""))
+    prev_hash = "0"  # Hash initial pour la première transaction
+    
+    for tx in sorted_txs:
+        # Vérifier si la transaction a un hash (compatibilité v1/v2)
         if "h" not in tx:
             invalid_txs.append({
                 "id": tx.get("id"),
@@ -138,19 +154,25 @@ def verify_integrity():
             })
             continue
         
-        computed_hash = compute_hash(tx["p1"], tx["p2"], tx["t"], tx["a"])
+        # Calculer le hash avec le hash précédent (v3: hash chaîné)
+        computed_hash = compute_hash(tx["p1"], tx["p2"], tx["t"], tx["a"], prev_hash)
         stored_hash = tx["h"]
         
         if computed_hash == stored_hash:
             valid_txs.append(tx.get("id"))
+            prev_hash = stored_hash  # Utiliser le hash stocké pour la prochaine transaction
         else:
             invalid_txs.append({
                 "id": tx.get("id"),
-                "reason": "Hash invalide",
+                "reason": "Hash invalide ou chaîne cassée",
                 "computed_hash": computed_hash,
                 "stored_hash": stored_hash,
+                "expected_prev_hash": prev_hash,
                 "transaction": tx
             })
+            # Si la chaîne est cassée, on ne peut plus vérifier les suivantes correctement
+            # mais on continue quand même pour voir toutes les erreurs
+            prev_hash = stored_hash  # Continuer avec le hash stocké (même s'il est invalide)
     
     is_valid = len(invalid_txs) == 0
     status = "OK" if is_valid else "KO"
