@@ -25,12 +25,49 @@ Concevoir un système de transactions électroniques avec une intégrité garant
 
 ```
 .
-├── app.py              # Application Flask principale
+├── app.py                          # Application Flask principale
 ├── data/
-│   └── tx.json        # Stockage des transactions
-├── tests/              # Scripts de test et d'attaque
-│   └── attack_change_amount.py
+│   └── tx.json                    # Stockage des transactions
+├── tests/                          # Scripts de test et d'attaque
+│   ├── attack_change_amount.py    # Ex4: Attaque modification montant (v1)
+│   ├── test_attack_detection_v2.py # Ex7: Test détection attaque (v2)
+│   ├── attack_delete_transaction.py # Ex8: Attaque suppression (v2)
+│   ├── test_attacks_v3.py          # Ex10: Test détection attaques (v3)
+│   └── migrate_to_v3.py            # Script de migration vers v3
 └── README.md
+```
+
+## Installation et démarrage
+
+### Prérequis
+
+- Python 3.7+
+- Flask (installé via pip)
+
+### Installation
+
+```bash
+pip install flask requests
+```
+
+### Démarrage du serveur
+
+```bash
+python app.py
+```
+
+Le serveur sera accessible sur `http://localhost:5000`
+
+### Tests
+
+Les scripts de test nécessitent que le serveur Flask soit démarré :
+
+```bash
+# Dans un terminal : démarrer le serveur
+python app.py
+
+# Dans un autre terminal : exécuter les tests
+python tests/test_attacks_v3.py
 ```
 
 ## API HTTP
@@ -272,51 +309,6 @@ python tests/test_attacks_v3.py
 1. Créer au moins 3 transactions via Postman
 2. Vérifier l'intégrité : GET `/verify` → `"status": "OK"`
 3. Supprimer une transaction dans `data/tx.json` (ex: transaction du milieu)
-4. Vérifier à nouveau : GET `/verify` → `"status": "KO"`
-   - Les transactions suivantes sont invalides (chaîne cassée)
-   - Le système détecte que le hash précédent attendu ne correspond pas
-
-### Exercice 11 - Attaque : Insertion de transaction frauduleuse
-
-**Scénario** : Un attaquant insère une transaction frauduleuse dans le fichier `data/tx.json` (ex: une transaction vers son propre compte depuis le compte d'une victime).
-
-**Procédure** :
-1. Créer plusieurs transactions légitimes via l'API
-2. Insérer manuellement une transaction frauduleuse dans `data/tx.json`
-   - La transaction doit avoir un hash calculé avec le hash de la transaction précédente
-   - Mais elle est insérée au milieu de la chaîne
-3. Vérifier que le système détecte cette insertion
-
-**Résultat** : 
-- ✅ L'attaque est détectée : les transactions suivantes ont un hash invalide
-- ✅ Le système v3 avec hash chaîné protège contre les insertions
-  - Si une transaction est insérée au milieu, elle casse la chaîne
-  - Les transactions suivantes dépendent du hash de la transaction précédente
-  - Le hash attendu ne correspond plus au hash réel
-- ⚠️  **Note** : Si l'attaquant calcule correctement le hash avec le prev_hash, la transaction insérée peut sembler valide, mais elle casse quand même la chaîne pour les transactions suivantes
-
-**Script de test** : `tests/attack_insert_transaction.py`
-
-**Exécution du test** :
-```bash
-# Assurez-vous que le serveur Flask est démarré (python app.py)
-python tests/attack_insert_transaction.py
-```
-
-**Test manuel** :
-1. Créer au moins 3 transactions via Postman :
-   - POST `http://localhost:5000/transactions` avec `{"p1": "alice", "p2": "bob", "a": 100}`
-   - POST `http://localhost:5000/transactions` avec `{"p1": "bob", "p2": "charlie", "a": 50}`
-   - POST `http://localhost:5000/transactions` avec `{"p1": "charlie", "p2": "alice", "a": 25}`
-
-2. Vérifier l'intégrité : GET `/verify` → `"status": "OK"`
-
-3. Ouvrir `data/tx.json` et insérer une transaction frauduleuse :
-   - Prendre le hash de la première transaction
-   - Créer une nouvelle transaction avec ce hash comme `prev_hash`
-   - Insérer cette transaction entre la première et la deuxième
-   - Exemple : `{"id": 999, "p1": "alice", "p2": "attacker", "a": 1000, "t": "...", "h": "..."}`
-
 4. Vérifier à nouveau : GET `/verify` → `"status": "KO"`
    - Les transactions suivantes sont invalides (chaîne cassée)
    - Le système détecte que le hash précédent attendu ne correspond pas

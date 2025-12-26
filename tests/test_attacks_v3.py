@@ -101,11 +101,8 @@ def test_modification_attack():
     except:
         result = False
     
-    # 5. Restaurer
-    print("\n4. Restauration...")
-    with open(TX_FILE, "w", encoding="utf-8") as f:
-        json.dump(saved_txs, f, indent=2, ensure_ascii=False)
-    print("   ✓ Fichier restauré\n")
+    # 5. Note: La restauration sera effectuée dans main()
+    print("\n4. Note: La restauration sera effectuée après tous les tests\n")
     
     return result
 
@@ -187,13 +184,40 @@ def test_deletion_attack():
     except:
         result = False
     
-    # 5. Restaurer
-    print("\n4. Restauration...")
-    with open(TX_FILE, "w", encoding="utf-8") as f:
-        json.dump(saved_txs, f, indent=2, ensure_ascii=False)
-    print("   ✓ Fichier restauré\n")
+    # 5. Note: La restauration sera effectuée dans main()
+    print("\n4. Note: La restauration sera effectuée après tous les tests\n")
     
     return result
+
+
+def save_initial_state():
+    """
+    Sauvegarde l'état initial du fichier de transactions.
+    """
+    with open(TX_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def restore_state(state):
+    """
+    Restaure l'état du fichier de transactions.
+    """
+    with open(TX_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+
+def verify_state():
+    """
+    Vérifie que l'état actuel est valide.
+    """
+    try:
+        response = requests.get(f"{API_BASE_URL}/verify")
+        if response.status_code == 200:
+            data = response.json()
+            return data['status'] == 'OK'
+    except:
+        pass
+    return False
 
 
 def main():
@@ -205,8 +229,33 @@ def main():
     print("=" * 60)
     print()
     
+    # Sauvegarder l'état initial
+    print("Sauvegarde de l'état initial...")
+    initial_state = save_initial_state()
+    print(f"✓ {len(initial_state)} transaction(s) sauvegardée(s)\n")
+    
+    # Test 1
     result1 = test_modification_attack()
+    
+    # Restaurer l'état initial avant le test 2
+    print("Restauration de l'état initial avant le test 2...")
+    restore_state(initial_state)
+    
+    # Vérifier que l'état est valide
+    import time
+    time.sleep(0.5)  # Petit délai pour s'assurer que le fichier est bien écrit
+    if verify_state():
+        print("✓ État restauré et valide\n")
+    else:
+        print("⚠️  L'état restauré n'est pas valide, mais on continue quand même\n")
+    
+    # Test 2
     result2 = test_deletion_attack()
+    
+    # Restaurer l'état initial final
+    print("Restauration finale de l'état initial...")
+    restore_state(initial_state)
+    print("✓ État initial restauré\n")
     
     print("=" * 60)
     print("RÉSUMÉ")
