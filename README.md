@@ -358,3 +358,105 @@ python tests/attack_insert_transaction.py
 4. Vérifier à nouveau : GET `/verify` → `"status": "KO"`
    - Les transactions suivantes sont invalides (chaîne cassée)
    - Le système détecte que le hash précédent attendu ne correspond pas
+
+## Tchaï cryptographique (v4)
+
+### Exercice 12 - Lecture des ressources Bitcoin
+
+**Objectif** : Lire et comprendre les concepts fondamentaux de Bitcoin et de la blockchain.
+
+**Ressources à lire** :
+1. **Message de Satoshi Nakamoto** sur "The Cryptography and Cryptography Policy Mailing List" (2008)
+   - Archive 1 : https://www.metzdowd.com/pipermail/cryptography/2008-October/014810.html
+   - Archive 2 : https://www.mail-archive.com/cryptography@metzdowd.com/msg09959.html
+
+2. **Papier original Bitcoin** : "Bitcoin: A Peer-to-Peer Electronic Cash System" (2008)
+   - https://web.archive.org/web/20140320135003/https://bitcoin.org/bitcoin.pdf
+
+**Résumé complet des ressources Bitcoin** :
+
+#### Message de Satoshi Nakamoto (2008)
+
+Satoshi Nakamoto présente Bitcoin comme une solution au problème de la double dépense dans un système de paiement électronique sans autorité centrale. Il explique que le système utilise :
+- Des **signatures cryptographiques** pour garantir l'authenticité des transactions
+- Un **réseau peer-to-peer** pour éviter le besoin d'une banque centrale
+- Une **chaîne de preuves de travail** (blockchain) pour maintenir un historique public des transactions
+- Un système de **consensus distribué** où les nœuds du réseau valident les transactions
+
+Le problème principal résolu : comment empêcher qu'une même pièce électronique soit dépensée deux fois sans avoir besoin d'une autorité centrale de confiance.
+
+#### Papier Bitcoin : "A Peer-to-Peer Electronic Cash System" (2008)
+
+**1. Introduction et problème**
+- Les systèmes de paiement électronique nécessitent une confiance en une autorité centrale (banque)
+- Le problème de la **double dépense** : une même pièce peut être dépensée plusieurs fois
+- Solution proposée : un système de paiement électronique **peer-to-peer** sans autorité centrale
+
+**2. Transactions électroniques**
+- Une transaction transfère des pièces d'un propriétaire à un autre
+- Chaque propriétaire signe numériquement la transaction avec sa **clé privée**
+- La transaction est diffusée à tous les nœuds du réseau
+- Les nœuds vérifient la signature avec la **clé publique** du propriétaire
+
+**3. Timestamp Server (Serveur d'horodatage)**
+- Le système utilise un **serveur d'horodatage distribué** basé sur la preuve de travail
+- Chaque bloc contient un hash du bloc précédent, créant une **chaîne de blocs** (blockchain)
+- Cette chaîne garantit l'ordre chronologique des transactions
+- Modifier un bloc nécessiterait de recalculer tous les blocs suivants (impossible en pratique)
+
+**4. Preuve de travail (Proof of Work)**
+- Mécanisme pour créer un consensus distribué sans autorité centrale
+- Les nœuds (mineurs) résolvent un problème cryptographique difficile (trouver un hash avec un certain nombre de zéros)
+- Le premier à résoudre le problème peut ajouter un bloc à la chaîne
+- La difficulté s'ajuste automatiquement pour maintenir un rythme constant de création de blocs
+- La preuve de travail rend très coûteux de modifier l'historique des transactions
+
+**5. Réseau**
+- Architecture **peer-to-peer** : pas de serveur central
+- Les nouveaux nœuds rejoignent le réseau en se connectant à d'autres nœuds
+- Les transactions sont diffusées à tous les nœuds
+- Chaque nœud valide indépendamment les transactions et les blocs
+- Le consensus émerge naturellement : la chaîne la plus longue est considérée comme valide
+
+**6. Incitation (Incentive)**
+- Les mineurs sont récompensés avec de nouvelles pièces pour chaque bloc créé
+- Cela incite les nœuds à participer au réseau et à maintenir sa sécurité
+- Les frais de transaction peuvent également récompenser les mineurs
+
+**7. Réclamation d'espace disque**
+- Les anciennes transactions peuvent être supprimées pour économiser l'espace
+- Seul le hash du bloc (Merkle root) est conservé, pas toutes les transactions
+- Cela permet de réduire la taille de la blockchain tout en maintenant l'intégrité
+
+**8. Vérification des paiements simplifiée**
+- Les nœuds peuvent vérifier les transactions sans télécharger toute la blockchain
+- Un nœud peut vérifier qu'une transaction est valide en vérifiant la chaîne de blocs jusqu'à la transaction
+
+**9. Combinaison et division de valeur**
+- Les transactions peuvent combiner plusieurs entrées (pièces reçues) et créer plusieurs sorties (destinations)
+- Cela permet de diviser et combiner les valeurs de manière flexible
+
+**10. Confidentialité**
+- Les transactions sont publiques mais les identités sont protégées
+- Les clés publiques sont utilisées comme adresses (pseudonymes)
+- Un utilisateur peut générer de nouvelles paires de clés pour chaque transaction pour plus de confidentialité
+
+**11. Calculs**
+- Analyse de la probabilité qu'un attaquant puisse créer une chaîne alternative plus longue
+- Plus la chaîne légitime est longue, plus il devient improbable qu'un attaquant puisse la dépasser
+- La probabilité diminue exponentiellement avec le nombre de blocs
+
+**Concepts clés pour Tchaï v4** :
+- **Signatures cryptographiques** : Chaque transaction doit être signée avec la clé privée de l'expéditeur
+- **Vérification** : La signature est vérifiée avec la clé publique correspondante
+- **Authenticité** : Seul le détenteur de la clé privée peut créer une transaction valide
+- **Intégrité** : La signature garantit que la transaction n'a pas été modifiée
+- **Non-répudiation** : L'expéditeur ne peut pas nier avoir créé la transaction
+- **Chaîne de blocs** : Chaque bloc dépend du précédent, rendant les modifications impossibles
+- **Consensus distribué** : Pas besoin d'autorité centrale, le réseau valide les transactions
+
+**Application à Tchaï v4** :
+- Chaque transaction doit inclure la signature de l'expéditeur (P1)
+- La clé publique de P1 doit être disponible pour vérifier la signature
+- Le système doit rejeter toute transaction avec une signature invalide
+- Cela empêche qu'un attaquant crée des transactions au nom d'autres personnes
