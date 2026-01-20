@@ -21,6 +21,45 @@ Concevoir un système de transactions électroniques avec une intégrité garant
   - Pas de dépendance à une base de données externe
   - SHA-256 est une fonction de hachage cryptographique standard, sécurisée et rapide
 
+### Justification du choix du hash `h = SHA-256(P1|P2|t|a)`
+
+**Format du hash** : `h = SHA-256(P1|P2|t|a)` où les données sont concaténées avec le séparateur `|`.
+
+**Raisons de ce choix** :
+
+1. **Inclusion de toutes les données critiques** :
+   - `P1` (expéditeur) : garantit que l'expéditeur ne peut pas être modifié
+   - `P2` (destinataire) : garantit que le destinataire ne peut pas être modifié
+   - `t` (timestamp) : garantit l'ordre chronologique et évite les doublons
+   - `a` (montant) : garantit que le montant ne peut pas être modifié
+   - Toute modification d'un de ces champs change le hash → détection immédiate
+
+2. **Séparateur `|` (pipe)** :
+   - Évite les ambiguïtés lors de la concaténation
+   - Exemple : `"alice"|"bob"|"2026-01-20"|"100"` est non ambigu
+   - Sans séparateur, `"alice"+"bob"` pourrait être confondu avec `"ali"+"cebob"`
+
+3. **SHA-256** :
+   - **Standard cryptographique** : utilisé par Bitcoin, TLS, Git, etc.
+   - **Sécurité** : résistant aux collisions (2^256 possibilités)
+   - **Performance** : rapide à calculer (quelques microsecondes)
+   - **Bibliothèque standard** : `hashlib` inclus dans Python, pas de dépendance externe
+   - **Format hexadécimal** : 64 caractères, facile à stocker et comparer
+
+4. **Timestamp inclus** :
+   - Permet de distinguer deux transactions identiques à des moments différents
+   - Facilite la transition vers le hash chaîné (v3) où l'ordre est crucial
+   - Garantit l'unicité des transactions
+
+5. **Format déterministe** :
+   - Le même message produit toujours le même hash
+   - Facilite la vérification : recalculer le hash et comparer avec celui stocké
+   - Pas d'aléatoire, reproductible
+
+**Alternative considérée** : MD5 ou SHA-1
+- **Rejetée** : MD5 et SHA-1 sont considérés comme obsolètes et vulnérables aux collisions
+- SHA-256 est la norme actuelle pour la sécurité cryptographique
+
 ## Structure du projet
 
 ```
